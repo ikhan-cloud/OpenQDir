@@ -6,6 +6,7 @@ interface Shortcut {
   key: string
   ctrl?: boolean
   shift?: boolean
+  alt?: boolean
   meta?: boolean
   handler: ShortcutHandler
 }
@@ -17,8 +18,9 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
         const ctrlOrMeta = shortcut.ctrl || shortcut.meta
         const matchesCtrl = ctrlOrMeta ? (e.ctrlKey || e.metaKey) : !e.ctrlKey && !e.metaKey
         const matchesShift = shortcut.shift ? e.shiftKey : !e.shiftKey
+        const matchesAlt = shortcut.alt !== undefined ? (shortcut.alt ? e.altKey : !e.altKey) : true
 
-        if (matchesCtrl && matchesShift && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
+        if (matchesCtrl && matchesShift && matchesAlt && e.key.toLowerCase() === shortcut.key.toLowerCase()) {
           e.preventDefault()
           shortcut.handler(e)
           return
