@@ -1,22 +1,14 @@
 import { useEffect } from 'react'
 
 import { useFileSystem } from '@/services'
-import { useNavigationStore } from '@/features/navigation'
-import { useExplorerStore } from '../store'
+import { usePaneNav, usePaneExplorer } from '@/features/workspace/hooks'
 import { ExplorerTable } from './ExplorerTable'
 import { ExplorerEmpty } from './ExplorerEmpty'
 import { FileDetails } from './FileDetails'
 
 export function ExplorerView() {
-  const currentPath = useNavigationStore((s) => s.currentPath)
-  const entries = useExplorerStore((s) => s.entries)
-  const loading = useExplorerStore((s) => s.loading)
-  const error = useExplorerStore((s) => s.error)
-  const activeItem = useExplorerStore((s) => s.activeItem)
-  const setEntries = useExplorerStore((s) => s.setEntries)
-  const setLoading = useExplorerStore((s) => s.setLoading)
-  const setError = useExplorerStore((s) => s.setError)
-  const clearSelection = useExplorerStore((s) => s.clearSelection)
+  const { currentPath } = usePaneNav()
+  const { entries, loading, error, activeItem, setEntries, setLoading, setError, clearSelection } = usePaneExplorer()
   const fs = useFileSystem()
 
   useEffect(() => {

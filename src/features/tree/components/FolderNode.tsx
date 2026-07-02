@@ -1,8 +1,7 @@
 import { useCallback, useEffect } from 'react'
 
 import { useFileSystem } from '@/services'
-import { useNavigationStore } from '@/features/navigation'
-import { useTreeStore } from '../store'
+import { useActivePaneNav, useActivePaneTree } from '@/features/workspace/hooks'
 import { TreeToggle } from './TreeToggle'
 import { TreeIcon } from './TreeIcon'
 import { cn } from '@/lib/utils'
@@ -14,18 +13,10 @@ interface FolderNodeProps {
 }
 
 export function FolderNode({ path, name, depth }: FolderNodeProps) {
-  const expandedPaths = useTreeStore((s) => s.expandedPaths)
-  const loadedPaths = useTreeStore((s) => s.loadedPaths)
-  const loadingPaths = useTreeStore((s) => s.loadingPaths)
-  const childrenMap = useTreeStore((s) => s.childrenMap)
-  const selectedPath = useTreeStore((s) => s.selectedPath)
-  const toggleNode = useTreeStore((s) => s.toggleNode)
-  const setNodeChildren = useTreeStore((s) => s.setNodeChildren)
-  const addLoading = useTreeStore((s) => s.addLoading)
-  const removeLoading = useTreeStore((s) => s.removeLoading)
-  const navigate = useNavigationStore((s) => s.navigate)
-
+  const { expandedPaths, loadedPaths, loadingPaths, childrenMap, selectedPath, toggleNode, setNodeChildren, addLoading, removeLoading } = useActivePaneTree()
+  const { navigate } = useActivePaneNav()
   const fs = useFileSystem()
+
   const isExpanded = expandedPaths.includes(path)
   const isLoading = loadingPaths.includes(path)
   const isLoaded = loadedPaths.includes(path)

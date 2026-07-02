@@ -2,8 +2,7 @@ import { useCallback, useMemo, useRef } from 'react'
 
 import { notificationService } from '@/services'
 import type { FileEntry } from '@/types'
-import { useNavigationStore } from '@/features/navigation'
-import { useExplorerStore } from '../store'
+import { usePaneNav, usePaneExplorer } from '@/features/workspace/hooks'
 import type { SortMode, SortDirection } from '../store'
 import { ExplorerRow } from './ExplorerRow'
 
@@ -52,16 +51,8 @@ interface ExplorerTableProps {
 }
 
 export function ExplorerTable({ entries }: ExplorerTableProps) {
-  const sortMode = useExplorerStore((s) => s.sortMode)
-  const sortDirection = useExplorerStore((s) => s.sortDirection)
-  const setSortMode = useExplorerStore((s) => s.setSortMode)
-  const setSortDirection = useExplorerStore((s) => s.setSortDirection)
-  const activeItem = useExplorerStore((s) => s.activeItem)
-  const moveSelectionUp = useExplorerStore((s) => s.moveSelectionUp)
-  const moveSelectionDown = useExplorerStore((s) => s.moveSelectionDown)
-  const moveSelectionHome = useExplorerStore((s) => s.moveSelectionHome)
-  const moveSelectionEnd = useExplorerStore((s) => s.moveSelectionEnd)
-  const navigate = useNavigationStore((s) => s.navigate)
+  const { sortMode, sortDirection, setSortMode, setSortDirection, activeItem, moveSelectionUp, moveSelectionDown, moveSelectionHome, moveSelectionEnd } = usePaneExplorer()
+  const { navigate } = usePaneNav()
   const containerRef = useRef<HTMLDivElement>(null)
 
   const sorted = useMemo(

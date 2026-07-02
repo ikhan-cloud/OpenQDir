@@ -1,19 +1,12 @@
 import { useEffect } from 'react'
 
 import { useFileSystem } from '@/services'
-import { useNavigationStore } from '@/features/navigation'
-import { useTreeStore } from '../store'
+import { useActivePaneNav, useActivePaneTree } from '@/features/workspace/hooks'
 import { FolderNode } from './FolderNode'
 
 export function FolderTree() {
-  const currentPath = useNavigationStore((s) => s.currentPath)
-  const loadedPaths = useTreeStore((s) => s.loadedPaths)
-  const childrenMap = useTreeStore((s) => s.childrenMap)
-  const loadingPaths = useTreeStore((s) => s.loadingPaths)
-  const setNodeChildren = useTreeStore((s) => s.setNodeChildren)
-  const addLoading = useTreeStore((s) => s.addLoading)
-  const removeLoading = useTreeStore((s) => s.removeLoading)
-  const expandToPath = useTreeStore((s) => s.expandToPath)
+  const { currentPath } = useActivePaneNav()
+  const { loadedPaths, loadingPaths, childrenMap, setNodeChildren, addLoading, removeLoading, expandToPath } = useActivePaneTree()
   const fs = useFileSystem()
 
   useEffect(() => {

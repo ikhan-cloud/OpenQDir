@@ -2,79 +2,119 @@ import { create } from 'zustand'
 
 import { normalize, parent, isRoot } from '@/lib/pathUtils'
 
-export interface NavigationStore {
+export interface PaneNavState {
   currentPath: string
   history: string[]
   historyIndex: number
-  canGoBack: boolean
-  canGoForward: boolean
-  navigate: (path: string) => void
-  goBack: () => void
-  goForward: () => void
-  goUp: () => void
-  refresh: () => void
 }
 
-export const useNavigationStore = create<NavigationStore>((set, get) => ({
+export interface NavigationStore {
+  panes: Record<string, PaneNavState>
+  registerPane: (paneId: string) => void
+  unregisterPane: (paneId: string) => void
+  navigate: (paneId: string, path: string) => void
+  goBack: (paneId: string) => void
+  goForward: (paneId: string) => void
+  goUp: (paneId: string) => void
+  refresh: (paneId: string) => void
+}
+
+const defaultPaneNav: PaneNavState = {
   currentPath: '',
   history: [''],
   historyIndex: 0,
-  canGoBack: false,
-  canGoForward: false,
+}
 
-  navigate: (path: string) => {
+export const useNavigationStore = create<NavigationStore>((set, get) => ({
+  panes: {},
+
+  registerPane: (paneId) =>
+    set((state) => {
+      if (state.panes[paneId]) return state
+      return {
+        panes: { ...state.panes, [paneId]: { ...defaultPaneNav } },
+      }
+    }),
+
+  unregisterPane: (paneId) =>
+    set((state) => {
+      const { [paneId]: _, ...rest } = state.panes
+      return { panes: rest as Record<string, PaneNavState> }
+    }),
+
+  navigate: (paneId, path) => {
     const normalized = normalize(path)
-    const { history, historyIndex } = get()
-
-    const truncated = history.slice(0, historyIndex + 1)
-    truncated.push(normalized)
-
-    set({
-      currentPath: normalized,
-      history: truncated,
-      historyIndex: truncated.length - 1,
-      canGoBack: truncated.length > 1,
-      canGoForward: false,
+    set((state) => {
+      const pane = state.panes[paneId]
+      if (!pane) return state
+      const truncated = pane.history.slice(0, pane.historyIndex + 1)
+      truncated.push(normalized)
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            currentPath: normalized,
+            history: truncated,
+            historyIndex: truncated.length - 1,
+          },
+        },
+      }
     })
   },
 
-  goBack: () => {
-    const { history, historyIndex } = get()
-    if (historyIndex <= 0) return
-
-    const newIndex = historyIndex - 1
-    set({
-      currentPath: history[newIndex],
-      historyIndex: newIndex,
-      canGoBack: newIndex > 0,
-      canGoForward: true,
+  goBack: (paneId) => {
+    set((state) => {
+      const pane = state.panes[paneId]
+      if (!pane || pane.historyIndex <= 0) return state
+      const newIndex = pane.historyIndex - 1
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...pane,
+            currentPath: pane.history[newIndex],
+            historyIndex: newIndex,
+          },
+        },
+      }
     })
   },
 
-  goForward: () => {
-    const { history, historyIndex } = get()
-    if (historyIndex >= history.length - 1) return
-
-    const newIndex = historyIndex + 1
-    set({
-      currentPath: history[newIndex],
-      historyIndex: newIndex,
-      canGoBack: true,
-      canGoForward: newIndex < history.length - 1,
+  goForward: (paneId) => {
+    set((state) => {
+      const pane = state.panes[paneId]
+      if (!pane || pane.historyIndex >= pane.history.length - 1) return state
+      const newIndex = pane.historyIndex + 1
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...pane,
+            currentPath: pane.history[newIndex],
+            historyIndex: newIndex,
+          },
+        },
+      }
     })
   },
 
-  goUp: () => {
-    const { currentPath } = get()
+  goUp: (paneId) => {
+    const { currentPath } = get().panes[paneId] ?? { currentPath: '' }
     if (!currentPath) return
     if (isRoot(currentPath)) return
-
     const parentPath = parent(currentPath)
-    get().navigate(parentPath)
+    get().navigate(paneId, parentPath)
   },
 
-  refresh: () => {
-    const { currentPath } = get()
-    set({ currentPath: `${currentPath}` })
-  },
+  refresh: (paneId) =>
+    set((state) => {
+      const pane = state.panes[paneId]
+      if (!pane) return state
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: { ...pane, currentPath: `${pane.currentPath}` },
+        },
+      }
+    }),
 }))

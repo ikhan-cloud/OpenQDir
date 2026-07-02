@@ -2,8 +2,7 @@ import { useCallback } from 'react'
 
 import { notificationService } from '@/services'
 import type { FileEntry } from '@/types'
-import { useNavigationStore } from '@/features/navigation'
-import { useExplorerStore } from '../store'
+import { usePaneNav, usePaneExplorer } from '@/features/workspace/hooks'
 import { FileIcon } from './FileIcon'
 import { cn } from '@/lib/utils'
 
@@ -38,9 +37,8 @@ function getFileTypeLabel(entry: FileEntry): string {
 }
 
 export function ExplorerRow({ entry }: ExplorerRowProps) {
-  const activeItem = useExplorerStore((s) => s.activeItem)
-  const selectItem = useExplorerStore((s) => s.selectItem)
-  const navigate = useNavigationStore((s) => s.navigate)
+  const { activeItem, selectItem } = usePaneExplorer()
+  const { navigate } = usePaneNav()
   const isActive = activeItem === entry.path
 
   const handleClick = useCallback(() => {

@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
 import { useFileSystem, notificationService } from '@/services'
-import { useNavigationStore } from '../store'
+import { usePaneNav } from '@/features/workspace/hooks'
 
 export function PathInput() {
-  const currentPath = useNavigationStore((s) => s.currentPath)
-  const navigate = useNavigationStore((s) => s.navigate)
+  const { currentPath, navigate } = usePaneNav()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(currentPath)
   const [validating, setValidating] = useState(false)

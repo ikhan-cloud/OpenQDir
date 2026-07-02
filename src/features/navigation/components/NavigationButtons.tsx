@@ -1,9 +1,8 @@
 import { commandRegistry } from '@/services'
-import { useNavigationStore } from '../store'
+import { useActivePaneNav } from '@/features/workspace/hooks'
 
 export function NavigationButtons() {
-  const canGoBack = useNavigationStore((s) => s.canGoBack)
-  const canGoForward = useNavigationStore((s) => s.canGoForward)
+  const { canGoBack, canGoForward } = useActivePaneNav()
 
   function handleBack() {
     commandRegistry.execute('view.back')

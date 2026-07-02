@@ -5,10 +5,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { ToastProvider, useToast } from '@/components/Toast'
 import { AppShell, useCommandPalette, useLoadingStore } from '@/features/layout'
-import { useNavigationStore } from '@/features/navigation'
 import { useThemeStore } from '@/features/theme'
 import { useSettingsStore } from '@/features/settings'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useActivePaneNav } from '@/features/workspace/hooks'
 import { commandRegistry, FileSystemProvider, globalShortcutManager } from '@/services'
 
 function Home() {
@@ -25,10 +25,7 @@ function AppCommands() {
   const toggleSidebar = useSettingsStore((s) => s.toggleSidebar)
   const togglePalette = useCommandPalette((s) => s.toggle)
   const toast = useToast()
-  const goBack = useNavigationStore((s) => s.goBack)
-  const goForward = useNavigationStore((s) => s.goForward)
-  const goUp = useNavigationStore((s) => s.goUp)
-  const refresh = useNavigationStore((s) => s.refresh)
+  const { goBack, goForward, goUp, refresh } = useActivePaneNav()
 
   useEffect(() => {
     commandRegistry.register({
