@@ -17,3 +17,17 @@ export interface FileSystemService {
   isDirectory(path: string): Promise<boolean>
   isFile(path: string): Promise<boolean>
 }
+
+export interface DriveInfo {
+  name: string
+  path: string
+  label: string
+  type: 'local' | 'removable' | 'network' | 'ram' | 'optical' | 'virtual'
+  totalSpace: number
+  freeSpace: number
+  isReady: boolean
+}
+
+export interface DriveManager {
+  listDrives(): Promise<DriveInfo[]>
+}

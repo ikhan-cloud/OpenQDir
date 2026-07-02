@@ -77,4 +77,4 @@ export class MockFileSystemService implements FileSystemService {
   }
 }
 
-export const fileSystemService: FileSystemService = new MockFileSystemService()
+

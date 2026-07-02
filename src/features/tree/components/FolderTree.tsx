@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { fileSystemService } from '@/services'
+import { useFileSystem } from '@/services'
 import { useNavigationStore } from '@/features/navigation'
 import { useTreeStore } from '../store'
 import { FolderNode } from './FolderNode'
@@ -14,13 +14,14 @@ export function FolderTree() {
   const addLoading = useTreeStore((s) => s.addLoading)
   const removeLoading = useTreeStore((s) => s.removeLoading)
   const expandToPath = useTreeStore((s) => s.expandToPath)
+  const fs = useFileSystem()
 
   useEffect(() => {
     async function loadRoot() {
       if (loadedPaths.includes('/')) return
       addLoading('/')
       try {
-        const entries = await fileSystemService.readDir('/')
+        const entries = await fs.readDir('/')
         const dirs = entries
           .filter((e) => e.type === 'directory')
           .map((e) => e.path)
@@ -32,7 +33,7 @@ export function FolderTree() {
       }
     }
     loadRoot()
-  }, [loadedPaths, setNodeChildren, addLoading, removeLoading])
+  }, [loadedPaths, setNodeChildren, addLoading, removeLoading, fs])
 
   useEffect(() => {
     if (currentPath && currentPath !== '/') {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 
-import { fileSystemService } from '@/services'
+import { useFileSystem } from '@/services'
 import { useNavigationStore } from '@/features/navigation'
 import { useTreeStore } from '../store'
 import { TreeToggle } from './TreeToggle'
@@ -25,6 +25,7 @@ export function FolderNode({ path, name, depth }: FolderNodeProps) {
   const removeLoading = useTreeStore((s) => s.removeLoading)
   const navigate = useNavigationStore((s) => s.navigate)
 
+  const fs = useFileSystem()
   const isExpanded = expandedPaths.includes(path)
   const isLoading = loadingPaths.includes(path)
   const isLoaded = loadedPaths.includes(path)
@@ -35,7 +36,7 @@ export function FolderNode({ path, name, depth }: FolderNodeProps) {
     if (isLoaded) return
     addLoading(path)
     try {
-      const entries = await fileSystemService.readDir(path)
+      const entries = await fs.readDir(path)
       const dirs = entries
         .filter((e) => e.type === 'directory')
         .map((e) => e.path)
@@ -45,7 +46,7 @@ export function FolderNode({ path, name, depth }: FolderNodeProps) {
     } finally {
       removeLoading(path)
     }
-  }, [path, isLoaded, addLoading, removeLoading, setNodeChildren])
+  }, [path, isLoaded, addLoading, removeLoading, setNodeChildren, fs])
 
   useEffect(() => {
     if (isExpanded && !isLoaded) {

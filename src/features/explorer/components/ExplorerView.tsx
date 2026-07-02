@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { fileSystemService } from '@/services'
+import { useFileSystem } from '@/services'
 import { useNavigationStore } from '@/features/navigation'
 import { useExplorerStore } from '../store'
 import { ExplorerTable } from './ExplorerTable'
@@ -17,6 +17,7 @@ export function ExplorerView() {
   const setLoading = useExplorerStore((s) => s.setLoading)
   const setError = useExplorerStore((s) => s.setError)
   const clearSelection = useExplorerStore((s) => s.clearSelection)
+  const fs = useFileSystem()
 
   useEffect(() => {
     if (!currentPath) {
@@ -29,7 +30,7 @@ export function ExplorerView() {
     setError(null)
     clearSelection()
 
-    fileSystemService.readDir(currentPath).then(
+    fs.readDir(currentPath).then(
       (result) => {
         if (!cancelled) {
           setEntries(result)
@@ -46,7 +47,7 @@ export function ExplorerView() {
     return () => {
       cancelled = true
     }
-  }, [currentPath, setEntries, setLoading, setError, clearSelection])
+  }, [currentPath, setEntries, setLoading, setError, clearSelection, fs])
 
   const selectedEntry = activeItem ? entries.find((e) => e.path === activeItem) ?? null : null
 

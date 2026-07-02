@@ -9,7 +9,7 @@ import { useNavigationStore } from '@/features/navigation'
 import { useThemeStore } from '@/features/theme'
 import { useSettingsStore } from '@/features/settings'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
-import { commandRegistry, globalShortcutManager } from '@/services'
+import { commandRegistry, FileSystemProvider, globalShortcutManager } from '@/services'
 
 function Home() {
   return (
@@ -178,13 +178,15 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <ToastProvider>
-          <AppShell>
-            <Routes>
-              <Route path="/" element={<Home />} />
-            </Routes>
-          </AppShell>
-          <AppCommands />
-          <LoadingOverlay show={loading} message={loadingMessage} />
+          <FileSystemProvider>
+            <AppShell>
+              <Routes>
+                <Route path="/" element={<Home />} />
+              </Routes>
+            </AppShell>
+            <AppCommands />
+            <LoadingOverlay show={loading} message={loadingMessage} />
+          </FileSystemProvider>
         </ToastProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-import { fileSystemService, notificationService } from '@/services'
+import { useFileSystem, notificationService } from '@/services'
 import { useNavigationStore } from '../store'
 
 export function PathInput() {
@@ -10,6 +10,7 @@ export function PathInput() {
   const [draft, setDraft] = useState(currentPath)
   const [validating, setValidating] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const fs = useFileSystem()
 
   useEffect(() => {
     if (!editing) {
@@ -36,7 +37,7 @@ export function PathInput() {
 
         setValidating(true)
         try {
-          const exists = await fileSystemService.exists(path)
+          const exists = await fs.exists(path)
           if (exists) {
             navigate(path)
           } else {
@@ -56,7 +57,7 @@ export function PathInput() {
         setEditing(false)
       }
     },
-    [draft, currentPath, navigate],
+    [draft, currentPath, navigate, fs],
   )
 
   return (
