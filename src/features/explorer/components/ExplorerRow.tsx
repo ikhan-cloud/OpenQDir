@@ -5,6 +5,7 @@ import type { FileEntry } from '@/types'
 import { useNavigationStore } from '@/features/navigation'
 import { useExplorerStore } from '../store'
 import { FileIcon } from './FileIcon'
+import { cn } from '@/lib/utils'
 
 interface ExplorerRowProps {
   entry: FileEntry
@@ -37,14 +38,14 @@ function getFileTypeLabel(entry: FileEntry): string {
 }
 
 export function ExplorerRow({ entry }: ExplorerRowProps) {
-  const selectedPath = useExplorerStore((s) => s.selectedPath)
-  const setSelectedPath = useExplorerStore((s) => s.setSelectedPath)
+  const activeItem = useExplorerStore((s) => s.activeItem)
+  const selectItem = useExplorerStore((s) => s.selectItem)
   const navigate = useNavigationStore((s) => s.navigate)
-  const isSelected = selectedPath === entry.path
+  const isActive = activeItem === entry.path
 
   const handleClick = useCallback(() => {
-    setSelectedPath(entry.path)
-  }, [entry.path, setSelectedPath])
+    selectItem(entry.path)
+  }, [entry.path, selectItem])
 
   const handleDoubleClick = useCallback(() => {
     if (entry.type === 'directory') {
@@ -61,13 +62,15 @@ export function ExplorerRow({ entry }: ExplorerRowProps) {
     <div
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      className={`flex h-8 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm transition-colors ${
-        isSelected
+      className={cn(
+        'flex h-8 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm transition-colors',
+        isActive
           ? 'bg-accent text-accent-foreground'
-          : 'text-foreground hover:bg-accent/50'
-      }`}
+          : 'text-foreground hover:bg-accent/50',
+      )}
       role="row"
-      aria-selected={isSelected}
+      aria-selected={isActive}
+      data-path={entry.path}
     >
       <FileIcon type={entry.type} name={entry.name} />
       <span className="flex-1 truncate">{entry.name}</span>

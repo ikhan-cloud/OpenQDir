@@ -1,6 +1,8 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 
+import { notificationService } from '@/services'
 import type { FileEntry } from '@/types'
+import { useNavigationStore } from '@/features/navigation'
 import { useExplorerStore } from '../store'
 import type { SortMode, SortDirection } from '../store'
 import { ExplorerRow } from './ExplorerRow'
@@ -54,11 +56,20 @@ export function ExplorerTable({ entries }: ExplorerTableProps) {
   const sortDirection = useExplorerStore((s) => s.sortDirection)
   const setSortMode = useExplorerStore((s) => s.setSortMode)
   const setSortDirection = useExplorerStore((s) => s.setSortDirection)
+  const activeItem = useExplorerStore((s) => s.activeItem)
+  const moveSelectionUp = useExplorerStore((s) => s.moveSelectionUp)
+  const moveSelectionDown = useExplorerStore((s) => s.moveSelectionDown)
+  const moveSelectionHome = useExplorerStore((s) => s.moveSelectionHome)
+  const moveSelectionEnd = useExplorerStore((s) => s.moveSelectionEnd)
+  const navigate = useNavigationStore((s) => s.navigate)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const sorted = useMemo(
     () => sortEntries(entries, sortMode, sortDirection),
     [entries, sortMode, sortDirection],
   )
+
+  const sortedPaths = useMemo(() => sorted.map((e) => e.path), [sorted])
 
   function handleSort(mode: SortMode) {
     if (sortMode === mode) {
@@ -69,8 +80,58 @@ export function ExplorerTable({ entries }: ExplorerTableProps) {
     }
   }
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (sortedPaths.length === 0) return
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault()
+          moveSelectionUp(sortedPaths)
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          moveSelectionDown(sortedPaths)
+          break
+        case 'Home':
+          e.preventDefault()
+          moveSelectionHome(sortedPaths)
+          break
+        case 'End':
+          e.preventDefault()
+          moveSelectionEnd(sortedPaths)
+          break
+        case 'Enter': {
+          e.preventDefault()
+          if (activeItem) {
+            const entry = sorted.find((e) => e.path === activeItem)
+            if (entry) {
+              if (entry.type === 'directory') {
+                navigate(entry.path)
+              } else {
+                notificationService.info(
+                  'Open file',
+                  `Opening files is not yet implemented. (${entry.name})`,
+                )
+              }
+            }
+          }
+          break
+        }
+      }
+    },
+    [sortedPaths, activeItem, sorted, moveSelectionUp, moveSelectionDown, moveSelectionHome, moveSelectionEnd, navigate],
+  )
+
   return (
-    <div className="flex flex-1 flex-col" role="table" aria-label="Folder contents">
+    <div
+      className="flex flex-1 flex-col"
+      role="table"
+      aria-label="Folder contents"
+      ref={containerRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       <div className="flex h-8 items-center gap-3 border-b border-border px-2 text-xs font-medium text-muted-foreground" role="row">
         {sortColumns.map((col) => (
           <button
@@ -94,7 +155,7 @@ export function ExplorerTable({ entries }: ExplorerTableProps) {
           </button>
         ))}
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" onClick={() => containerRef.current?.focus()}>
         {sorted.map((entry) => (
           <ExplorerRow key={entry.path} entry={entry} />
         ))}
