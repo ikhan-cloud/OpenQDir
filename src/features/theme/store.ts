@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { settingsService } from '@/services'
+
 export type Theme = 'light' | 'dark'
 
 interface ThemeState {
@@ -9,38 +11,33 @@ interface ThemeState {
 }
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'light'
-  const stored = localStorage.getItem('openqdir-theme') as Theme | null
-  if (stored === 'light' || stored === 'dark') return stored
-  return 'dark'
+  return settingsService.get<Theme>('theme', 'dark')
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme): void {
   const root = document.documentElement
   if (theme === 'dark') {
     root.classList.add('dark')
   } else {
     root.classList.remove('dark')
   }
-  localStorage.setItem('openqdir-theme', theme)
 }
 
-export const useThemeStore = create<ThemeState>((set) => {
-  const initial = getInitialTheme()
-  applyTheme(initial)
+const initial = getInitialTheme()
+applyTheme(initial)
 
-  return {
-    theme: initial,
-    setTheme: (theme: Theme) => {
-      applyTheme(theme)
-      set({ theme })
-    },
-    toggleTheme: () => {
-      set((state) => {
-        const next = state.theme === 'light' ? 'dark' : 'light'
-        applyTheme(next)
-        return { theme: next }
-      })
-    },
-  }
-})
+export const useThemeStore = create<ThemeState>((set) => ({
+  theme: initial,
+  setTheme: (theme: Theme) => {
+    settingsService.set('theme', theme)
+    applyTheme(theme)
+    set({ theme })
+  },
+  toggleTheme: () =>
+    set((state) => {
+      const next = state.theme === 'light' ? 'dark' : 'light'
+      settingsService.set('theme', next)
+      applyTheme(next)
+      return { theme: next }
+    }),
+}))
