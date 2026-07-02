@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { AddressBar } from '@/features/navigation'
 import { TitleBar } from './TitleBar'
 import { Toolbar } from './Toolbar'
 import { Sidebar } from './Sidebar'
@@ -19,6 +20,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
       <TitleBar />
       <Toolbar />
+      <AddressBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <Workspace>{children}</Workspace>
