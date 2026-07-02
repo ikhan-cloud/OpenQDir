@@ -1,10 +1,23 @@
 import type { ReactNode } from 'react'
 
+import { ExplorerView } from '@/features/explorer'
+import { useNavigationStore } from '@/features/navigation'
+
 interface WorkspaceProps {
   children?: ReactNode
 }
 
 export function Workspace({ children }: WorkspaceProps) {
+  const currentPath = useNavigationStore((s) => s.currentPath)
+
+  if (currentPath) {
+    return (
+      <main className="flex flex-1 flex-col overflow-auto bg-background">
+        <ExplorerView />
+      </main>
+    )
+  }
+
   return (
     <main className="flex flex-1 flex-col overflow-auto bg-background">
       {children ?? (
