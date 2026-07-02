@@ -7,10 +7,13 @@ export interface SettingsState {
   sidebarWidth: number
   fontSize: number
   workspaceView: string
+  showFolderTree: boolean
   toggleSidebar: () => void
   setSidebarWidth: (width: number) => void
   setFontSize: (size: number) => void
   setWorkspaceView: (view: string) => void
+  setShowFolderTree: (show: boolean) => void
+  toggleFolderTree: () => void
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -18,6 +21,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   sidebarWidth: settingsService.get('sidebarWidth', 260),
   fontSize: settingsService.get('fontSize', 14),
   workspaceView: settingsService.get('workspaceView', 'welcome'),
+  showFolderTree: settingsService.get('showFolderTree', true),
   toggleSidebar: () =>
     set((state) => {
       const next = !state.sidebarCollapsed
@@ -36,4 +40,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     settingsService.set('workspaceView', view)
     set({ workspaceView: view })
   },
+  setShowFolderTree: (show: boolean) => {
+    settingsService.set('showFolderTree', show)
+    set({ showFolderTree: show })
+  },
+  toggleFolderTree: () =>
+    set((state) => {
+      const next = !state.showFolderTree
+      settingsService.set('showFolderTree', next)
+      return { showFolderTree: next }
+    }),
 }))
