@@ -8,14 +8,15 @@ interface WorkspaceProps {
 }
 
 export function Workspace({ children }: WorkspaceProps) {
-  const initPanes = useWorkspaceStore((s) => s.initPanes)
+  const layout = useWorkspaceStore((s) => s.layout)
+  const setLayout = useWorkspaceStore((s) => s.setLayout)
   const panesInitialized = useWorkspaceStore((s) => s.panes.length > 0)
 
   useEffect(() => {
     if (!panesInitialized) {
-      initPanes(['main'])
+      setLayout(layout)
     }
-  }, [initPanes, panesInitialized])
+  }, [setLayout, panesInitialized, layout])
 
   return <WorkspaceLayout>{children}</WorkspaceLayout>
 }

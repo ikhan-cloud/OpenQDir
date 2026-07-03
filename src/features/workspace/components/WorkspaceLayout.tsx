@@ -1,11 +1,16 @@
 import type { ReactNode } from 'react'
 
-import { useWorkspaceStore } from '../store'
-import { Pane } from './Pane'
-import { PaneContainer } from './PaneContainer'
+import { get } from '../layouts/layoutRegistry'
+import { useWorkspaceStore, type PaneState } from '../store'
 
 interface WorkspaceLayoutProps {
   children?: ReactNode
+}
+
+function renderLayout(layout: string, panes: PaneState[]) {
+  const Renderer = get(layout)
+  if (!Renderer) return null
+  return <Renderer panes={panes} />
 }
 
 export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
@@ -32,17 +37,5 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     )
   }
 
-  if (layout === 'single') {
-    return (
-      <main className="flex flex-1 flex-col overflow-auto bg-background">
-        {panes.map((pane) => (
-          <Pane key={pane.id} id={pane.id}>
-            <PaneContainer paneId={pane.id} />
-          </Pane>
-        ))}
-      </main>
-    )
-  }
-
-  return null
+  return renderLayout(layout, panes)
 }
