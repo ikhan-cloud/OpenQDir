@@ -27,7 +27,8 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   }
 
   const activePane = panes.find((p) => p.id === activePaneId)
-  const hasPath = activePane && activePane.currentPath.length > 0
+  const activeTab = activePane?.tabs.find((t) => t.id === activePane.activeTabId)
+  const hasPath = activeTab && activeTab.currentPath.length > 0
 
   if (!hasPath) {
     return (

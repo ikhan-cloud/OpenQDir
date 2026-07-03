@@ -1,5 +1,5 @@
 export { useWorkspaceStore } from './store'
-export type { WorkspaceStore, PaneState, LayoutMode } from './store'
+export type { WorkspaceStore, PaneState, LayoutMode, TabState } from './store'
 export { WorkspaceLayout } from './components/WorkspaceLayout'
 export { Pane } from './components/Pane'
 export { PaneContainer } from './components/PaneContainer'

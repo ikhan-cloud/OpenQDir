@@ -15,7 +15,9 @@ export function PaneContainer({ paneId }: PaneContainerProps) {
   const panes = useWorkspaceStore((s) => s.panes)
   const setPanePath = useWorkspaceStore((s) => s.setPanePath)
   const navPath = useNavigationStore((s) => s.panes[paneId]?.currentPath)
+
   const pane = panes.find((p) => p.id === paneId)
+  const activeTab = pane?.tabs.find((t) => t.id === pane?.activeTabId)
 
   useEffect(() => {
     useNavigationStore.getState().registerPane(paneId)
@@ -24,10 +26,10 @@ export function PaneContainer({ paneId }: PaneContainerProps) {
   }, [paneId])
 
   useEffect(() => {
-    if (pane && navPath !== undefined && navPath !== pane.currentPath) {
+    if (activeTab && navPath !== undefined && navPath !== activeTab.currentPath) {
       setPanePath(paneId, navPath)
     }
-  }, [navPath, pane, paneId, setPanePath])
+  }, [navPath, activeTab, paneId, setPanePath])
 
   return (
     <PaneIdContext.Provider value={paneId}>

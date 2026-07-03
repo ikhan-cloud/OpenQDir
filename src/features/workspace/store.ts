@@ -4,9 +4,16 @@ import { settingsService } from '@/services'
 
 export type LayoutMode = 'single' | 'horizontal' | 'vertical' | 'grid'
 
+export interface TabState {
+  id: string
+  name: string
+  currentPath: string
+}
+
 export interface PaneState {
   id: string
-  currentPath: string
+  tabs: TabState[]
+  activeTabId: string
 }
 
 export interface WorkspaceStore {
@@ -21,6 +28,21 @@ export interface WorkspaceStore {
   setLayout: (layout: LayoutMode) => void
   setPaneSize: (id: string, size: number) => void
   setPaneSizes: (sizes: Record<string, number>) => void
+  getActiveTab: (paneId: string) => TabState | undefined
+}
+
+const DEFAULT_TAB_ID = 'tab1'
+
+function createDefaultTab(): TabState {
+  return { id: DEFAULT_TAB_ID, name: 'Tab 1', currentPath: '' }
+}
+
+function createDefaultPane(id: string): PaneState {
+  return {
+    id,
+    tabs: [createDefaultTab()],
+    activeTabId: DEFAULT_TAB_ID,
+  }
 }
 
 function getPaneIdsForLayout(layout: LayoutMode): string[] {
@@ -36,7 +58,7 @@ function getPaneIdsForLayout(layout: LayoutMode): string[] {
   }
 }
 
-export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
+export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   panes: [],
   activePaneId: '',
   layout: 'single',
@@ -45,7 +67,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
 
   initPanes: (ids) =>
     set({
-      panes: ids.map((id) => ({ id, currentPath: '' })),
+      panes: ids.map((id) => createDefaultPane(id)),
       activePaneId: ids[0] ?? '',
     }),
 
@@ -53,7 +75,16 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
 
   setPanePath: (id, path) =>
     set((state) => ({
-      panes: state.panes.map((p) => (p.id === id ? { ...p, currentPath: path } : p)),
+      panes: state.panes.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              tabs: p.tabs.map((t) =>
+                t.id === p.activeTabId ? { ...t, currentPath: path } : t,
+              ),
+            }
+          : p,
+      ),
     })),
 
   setLayout: (layout) =>
@@ -71,17 +102,19 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
         if (live) return live
         const cached = paneStateCache.get(id)
         if (cached) return { ...cached }
-        return { id, currentPath: '' }
+        return createDefaultPane(id)
       })
 
       const stale = state.panes.filter((p) => !newIds.includes(p.id))
       const updatedCache = { ...cachedRaw }
       for (const p of stale) {
-        updatedCache[p.id] = { id: p.id, currentPath: p.currentPath }
+        updatedCache[p.id] = { id: p.id, tabs: p.tabs, activeTabId: p.activeTabId }
       }
       settingsService.set(cacheKey, updatedCache)
 
-      const activePaneId = existing.has(state.activePaneId) ? state.activePaneId : (merged[0]?.id ?? '')
+      const activePaneId = existing.has(state.activePaneId)
+        ? state.activePaneId
+        : (merged[0]?.id ?? '')
 
       return { layout, panes: merged, activePaneId }
     }),
@@ -96,5 +129,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   setPaneSizes: (sizes) => {
     settingsService.set('paneSizes', sizes)
     set({ paneSizes: sizes })
+  },
+
+  getActiveTab: (paneId) => {
+    const pane = get().panes.find((p) => p.id === paneId)
+    if (!pane) return undefined
+    return pane.tabs.find((t) => t.id === pane.activeTabId)
   },
 }))
