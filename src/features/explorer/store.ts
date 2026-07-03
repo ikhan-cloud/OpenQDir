@@ -15,6 +15,7 @@ export interface PaneExplorerState {
   selectedItems: string[]
   activeItem: string | null
   lastSelectedItem: string | null
+  filterQuery: string
 }
 
 export interface ExplorerStore {
@@ -29,6 +30,7 @@ export interface ExplorerStore {
   setSortMode: (paneId: string, tabId: string, mode: SortMode) => void
   setSortDirection: (paneId: string, tabId: string, direction: SortDirection) => void
   setViewMode: (paneId: string, tabId: string, mode: ViewMode) => void
+  setFilterQuery: (paneId: string, tabId: string, query: string) => void
   selectItem: (paneId: string, tabId: string, path: string) => void
   setActiveItem: (paneId: string, tabId: string, path: string | null) => void
   clearSelection: (paneId: string, tabId: string) => void
@@ -48,6 +50,7 @@ const defaultPaneExplorer: PaneExplorerState = {
   selectedItems: [],
   activeItem: null,
   lastSelectedItem: null,
+  filterQuery: '',
 }
 
 export const useExplorerStore = create<ExplorerStore>((set, get) => ({
@@ -175,6 +178,21 @@ export const useExplorerStore = create<ExplorerStore>((set, get) => ({
           [paneId]: {
             ...state.panes[paneId],
             [tabId]: { ...tab, viewMode },
+          },
+        },
+      }
+    }),
+
+  setFilterQuery: (paneId, tabId, filterQuery) =>
+    set((state) => {
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: { ...tab, filterQuery },
           },
         },
       }

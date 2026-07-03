@@ -1,15 +1,31 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 import { useFileSystem } from '@/services'
-import { usePaneNav, usePaneExplorer } from '@/features/workspace/hooks'
+import { filenameSearchService } from '@/services/searchService'
+import { useDebounce } from '@/hooks/useDebounce'
+import { usePaneNav, usePaneExplorer, usePaneFileTransfer } from '@/features/workspace/hooks'
 import { ExplorerTable } from './ExplorerTable'
 import { ExplorerEmpty } from './ExplorerEmpty'
 import { FileDetails } from './FileDetails'
 
 export function ExplorerView() {
   const { currentPath } = usePaneNav()
-  const { entries, loading, error, activeItem, setEntries, setLoading, setError, clearSelection } = usePaneExplorer()
+  const { entries, loading, error, activeItem, filterQuery, setEntries, setLoading, setError, clearSelection, setFilterQuery } = usePaneExplorer()
   const fs = useFileSystem()
+  const { move } = usePaneFileTransfer()
+
+  const [localQuery, setLocalQuery] = useState(filterQuery)
+  const debouncedQuery = useDebounce(localQuery, 300)
+  const [dragOverCount, setDragOverCount] = useState(0)
+
+  useEffect(() => {
+    setFilterQuery(debouncedQuery)
+  }, [debouncedQuery, setFilterQuery])
+
+  useEffect(() => {
+    setLocalQuery('')
+    setFilterQuery('')
+  }, [currentPath, setFilterQuery])
 
   useEffect(() => {
     if (!currentPath) {
@@ -41,7 +57,48 @@ export function ExplorerView() {
     }
   }, [currentPath, setEntries, setLoading, setError, clearSelection, fs])
 
+  const filtered = useMemo(
+    () => filterQuery
+      ? entries.filter((e) => filenameSearchService.match(e.name, filterQuery))
+      : entries,
+    [entries, filterQuery],
+  )
+
   const selectedEntry = activeItem ? entries.find((e) => e.path === activeItem) ?? null : null
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!currentPath) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }, [currentPath])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverCount((c) => c + 1)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverCount((c) => c - 1)
+  }, [])
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOverCount(0)
+      if (!currentPath) return
+      const raw = e.dataTransfer.getData('application/json')
+      if (!raw) return
+      const paths: string[] = JSON.parse(raw)
+      for (const src of paths) {
+        const name = src.split('/').filter(Boolean).pop() ?? 'item'
+        const dest = `${currentPath}/${name}`
+        if (src !== dest) {
+          await move(src, dest)
+        }
+      }
+    },
+    [currentPath, move],
+  )
 
   if (!currentPath) return null
 
@@ -83,18 +140,61 @@ export function ExplorerView() {
     )
   }
 
-  if (entries.length === 0) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <ExplorerEmpty />
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-1 flex-col">
-      <ExplorerTable entries={entries} />
-      <FileDetails entry={selectedEntry} />
+    <div
+      className={`flex flex-1 flex-col ${dragOverCount > 0 ? 'bg-accent/10' : ''}`}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="flex h-8 items-center gap-1.5 border-b border-border px-2">
+        <svg
+          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Filter files..."
+          value={localQuery}
+          onChange={(e) => setLocalQuery(e.target.value)}
+          className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+        />
+        {localQuery && (
+          <button
+            onClick={() => setLocalQuery('')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {entries.length === 0 ? (
+        <ExplorerEmpty />
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-muted-foreground">No results matching &quot;{localQuery}&quot;</p>
+        </div>
+      ) : (
+        <>
+          <ExplorerTable entries={filtered} />
+          <FileDetails entry={selectedEntry} />
+        </>
+      )}
     </div>
   )
 }

@@ -48,7 +48,7 @@ const contextMenuItems: ContextMenuDef[] = [
 ]
 
 export function ExplorerRow({ entry }: ExplorerRowProps) {
-  const { activeItem, selectItem } = usePaneExplorer()
+  const { activeItem, selectItem, selectedItems } = usePaneExplorer()
   const { navigate } = usePaneNav()
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
   const isActive = activeItem === entry.path
@@ -77,9 +77,22 @@ export function ExplorerRow({ entry }: ExplorerRowProps) {
     [entry.path, selectItem],
   )
 
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      const paths = selectedItems.includes(entry.path) && selectedItems.length > 0
+        ? selectedItems
+        : [entry.path]
+      e.dataTransfer.setData('application/json', JSON.stringify(paths))
+      e.dataTransfer.effectAllowed = 'move'
+    },
+    [selectedItems, entry.path],
+  )
+
   return (
     <>
       <div
+        draggable
+        onDragStart={handleDragStart}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}

@@ -1,7 +1,7 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { useFileSystem } from '@/services'
-import { useActivePaneNav, useActivePaneTree } from '@/features/workspace/hooks'
+import { useActivePaneNav, useActivePaneTree, useActivePaneFileTransfer } from '@/features/workspace/hooks'
 import { TreeToggle } from './TreeToggle'
 import { TreeIcon } from './TreeIcon'
 import { cn } from '@/lib/utils'
@@ -15,7 +15,10 @@ interface FolderNodeProps {
 export function FolderNode({ path, name, depth }: FolderNodeProps) {
   const { expandedPaths, loadedPaths, loadingPaths, childrenMap, selectedPath, toggleNode, setNodeChildren, addLoading, removeLoading } = useActivePaneTree()
   const { navigate } = useActivePaneNav()
+  const { move } = useActivePaneFileTransfer()
   const fs = useFileSystem()
+
+  const [dragOver, setDragOver] = useState(0)
 
   const isExpanded = expandedPaths.includes(path)
   const isLoading = loadingPaths.includes(path)
@@ -53,15 +56,53 @@ export function FolderNode({ path, name, depth }: FolderNodeProps) {
     toggleNode(path)
   }, [path, toggleNode])
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver((c) => c + 1)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOver((c) => c - 1)
+  }, [])
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOver(0)
+      const raw = e.dataTransfer.getData('application/json')
+      if (!raw) return
+      const paths: string[] = JSON.parse(raw)
+      for (const src of paths) {
+        const itemName = src.split('/').filter(Boolean).pop() ?? 'item'
+        const dest = `${path}/${itemName}`
+        if (src !== dest) {
+          await move(src, dest)
+        }
+      }
+    },
+    [path, move],
+  )
+
   return (
     <div>
       <button
         onClick={handleClick}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={cn(
           'flex h-7 w-full items-center gap-1 rounded-sm px-1 text-sm transition-colors',
           isSelected
             ? 'bg-accent text-accent-foreground'
-            : 'text-foreground hover:bg-accent/50',
+            : dragOver > 0
+              ? 'bg-accent/50 ring-1 ring-accent'
+              : 'text-foreground hover:bg-accent/50',
         )}
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
         aria-selected={isSelected}

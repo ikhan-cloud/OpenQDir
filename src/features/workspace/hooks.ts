@@ -43,6 +43,7 @@ function getDefaultExplorer(): PaneExplorerState {
     selectedItems: [],
     activeItem: null,
     lastSelectedItem: null,
+    filterQuery: '',
   }
 }
 
@@ -134,6 +135,7 @@ interface PaneExplorerActions {
   setSortMode: (mode: SortMode) => void
   setSortDirection: (direction: SortDirection) => void
   setViewMode: (mode: ViewMode) => void
+  setFilterQuery: (query: string) => void
   selectItem: (path: string) => void
   setActiveItem: (path: string | null) => void
   clearSelection: () => void
@@ -156,6 +158,7 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
   const setSortModeRaw = useExplorerStore((s) => s.setSortMode)
   const setSortDirectionRaw = useExplorerStore((s) => s.setSortDirection)
   const setViewModeRaw = useExplorerStore((s) => s.setViewMode)
+  const setFilterQueryRaw = useExplorerStore((s) => s.setFilterQuery)
   const selectItemRaw = useExplorerStore((s) => s.selectItem)
   const setActiveItemRaw = useExplorerStore((s) => s.setActiveItem)
   const clearSelectionRaw = useExplorerStore((s) => s.clearSelection)
@@ -187,6 +190,10 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
   const setViewMode = useCallback(
     (mode: ViewMode) => setViewModeRaw(paneId, tabId, mode),
     [setViewModeRaw, paneId, tabId],
+  )
+  const setFilterQuery = useCallback(
+    (query: string) => setFilterQueryRaw(paneId, tabId, query),
+    [setFilterQueryRaw, paneId, tabId],
   )
   const selectItem = useCallback(
     (path: string) => selectItemRaw(paneId, tabId, path),
@@ -226,6 +233,7 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
       setSortMode,
       setSortDirection,
       setViewMode,
+      setFilterQuery,
       selectItem,
       setActiveItem,
       clearSelection,
@@ -236,7 +244,7 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
     }),
     [
       state, setEntries, setLoading, setError,
-      setSortMode, setSortDirection, setViewMode,
+      setSortMode, setSortDirection, setViewMode, setFilterQuery,
       selectItem, setActiveItem, clearSelection,
       moveSelectionUp, moveSelectionDown, moveSelectionHome, moveSelectionEnd,
     ],
@@ -245,6 +253,11 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
 
 export function usePaneExplorer(): PaneExplorerResult {
   return usePaneExplorerForId(usePaneId())
+}
+
+export function useActivePaneExplorer(): PaneExplorerResult {
+  const activePaneId = useWorkspaceStore((s) => s.activePaneId)
+  return usePaneExplorerForId(activePaneId || 'main')
 }
 
 /* ─── Tree ─── */
