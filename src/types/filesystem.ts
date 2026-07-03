@@ -31,3 +31,14 @@ export interface DriveInfo {
 export interface DriveManager {
   listDrives(): Promise<DriveInfo[]>
 }
+
+export interface FileOperationsService {
+  rename(oldPath: string, newPath: string): Promise<void>
+  delete(path: string): Promise<void>
+  createFolder(path: string): Promise<void>
+}
+
+export interface FileTransferService {
+  copy(source: string, destination: string): Promise<void>
+  move(source: string, destination: string): Promise<void>
+}

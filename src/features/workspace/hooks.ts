@@ -9,18 +9,27 @@ import { useTreeStore } from '@/features/tree'
 import type { TreeStore, PaneTreeState } from '@/features/tree'
 import type { FileEntry } from '@/types'
 import { useWorkspaceStore } from './store'
+import { useFileOperations as useFileOps } from '@/hooks/useFileOperations'
+import { useFileTransfer as useFileXfer } from '@/hooks/useFileTransfer'
+import { useClipboard as useClip } from '@/hooks/useClipboard'
 import { PaneIdContext } from './components/PaneIdContext'
 
 function usePaneId(): string {
   return useContext(PaneIdContext)
 }
 
+function useActiveTabId(paneId: string): string {
+  return useWorkspaceStore(
+    useShallow((s) => s.panes.find((p) => p.id === paneId)?.activeTabId ?? 'tab1'),
+  )
+}
+
 function getDefaultPaneNav(): PaneNavState {
   return { currentPath: '', history: [''], historyIndex: 0 }
 }
 
-function getNavState(s: NavigationStore, paneId: string): PaneNavState {
-  return s.panes[paneId] ?? getDefaultPaneNav()
+function getNavState(s: NavigationStore, paneId: string, tabId: string): PaneNavState {
+  return s.panes[paneId]?.[tabId] ?? getDefaultPaneNav()
 }
 
 function getDefaultExplorer(): PaneExplorerState {
@@ -37,8 +46,8 @@ function getDefaultExplorer(): PaneExplorerState {
   }
 }
 
-function getExplorerState(s: ExplorerStore, paneId: string): PaneExplorerState {
-  return s.panes[paneId] ?? getDefaultExplorer()
+function getExplorerState(s: ExplorerStore, paneId: string, tabId: string): PaneExplorerState {
+  return s.panes[paneId]?.[tabId] ?? getDefaultExplorer()
 }
 
 function getDefaultTree(): PaneTreeState {
@@ -51,8 +60,8 @@ function getDefaultTree(): PaneTreeState {
   }
 }
 
-function getTreeState(s: TreeStore, paneId: string): PaneTreeState {
-  return s.panes[paneId] ?? getDefaultTree()
+function getTreeState(s: TreeStore, paneId: string, tabId: string): PaneTreeState {
+  return s.panes[paneId]?.[tabId] ?? getDefaultTree()
 }
 
 /* ─── Navigation ─── */
@@ -71,9 +80,11 @@ export interface PaneNavResult extends PaneNavState, PaneNavActions {
 }
 
 function usePaneNavForId(paneId: string): PaneNavResult {
+  const tabId = useActiveTabId(paneId)
+
   const state = useNavigationStore(
     useShallow((s) => {
-      const p = getNavState(s, paneId)
+      const p = getNavState(s, paneId, tabId)
       return {
         currentPath: p.currentPath,
         history: p.history,
@@ -90,11 +101,14 @@ function usePaneNavForId(paneId: string): PaneNavResult {
   const goUpRaw = useNavigationStore((s) => s.goUp)
   const refreshRaw = useNavigationStore((s) => s.refresh)
 
-  const navigate = useCallback((path: string) => navigateRaw(paneId, path), [navigateRaw, paneId])
-  const goBack = useCallback(() => goBackRaw(paneId), [goBackRaw, paneId])
-  const goForward = useCallback(() => goForwardRaw(paneId), [goForwardRaw, paneId])
-  const goUp = useCallback(() => goUpRaw(paneId), [goUpRaw, paneId])
-  const refresh = useCallback(() => refreshRaw(paneId), [refreshRaw, paneId])
+  const navigate = useCallback(
+    (path: string) => navigateRaw(paneId, tabId, path),
+    [navigateRaw, paneId, tabId],
+  )
+  const goBack = useCallback(() => goBackRaw(paneId, tabId), [goBackRaw, paneId, tabId])
+  const goForward = useCallback(() => goForwardRaw(paneId, tabId), [goForwardRaw, paneId, tabId])
+  const goUp = useCallback(() => goUpRaw(paneId, tabId), [goUpRaw, paneId, tabId])
+  const refresh = useCallback(() => refreshRaw(paneId, tabId), [refreshRaw, paneId, tabId])
 
   return useMemo(
     () => ({ ...state, navigate, goBack, goForward, goUp, refresh }),
@@ -132,7 +146,9 @@ interface PaneExplorerActions {
 export interface PaneExplorerResult extends PaneExplorerState, PaneExplorerActions {}
 
 function usePaneExplorerForId(paneId: string): PaneExplorerResult {
-  const state = useExplorerStore(useShallow((s) => getExplorerState(s, paneId)))
+  const tabId = useActiveTabId(paneId)
+
+  const state = useExplorerStore(useShallow((s) => getExplorerState(s, paneId, tabId)))
 
   const setEntriesRaw = useExplorerStore((s) => s.setEntries)
   const setLoadingRaw = useExplorerStore((s) => s.setLoading)
@@ -148,19 +164,58 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
   const moveSelectionHomeRaw = useExplorerStore((s) => s.moveSelectionHome)
   const moveSelectionEndRaw = useExplorerStore((s) => s.moveSelectionEnd)
 
-  const setEntries = useCallback((entries: FileEntry[]) => setEntriesRaw(paneId, entries), [setEntriesRaw, paneId])
-  const setLoading = useCallback((loading: boolean) => setLoadingRaw(paneId, loading), [setLoadingRaw, paneId])
-  const setError = useCallback((error: string | null) => setErrorRaw(paneId, error), [setErrorRaw, paneId])
-  const setSortMode = useCallback((mode: SortMode) => setSortModeRaw(paneId, mode), [setSortModeRaw, paneId])
-  const setSortDirection = useCallback((d: SortDirection) => setSortDirectionRaw(paneId, d), [setSortDirectionRaw, paneId])
-  const setViewMode = useCallback((mode: ViewMode) => setViewModeRaw(paneId, mode), [setViewModeRaw, paneId])
-  const selectItem = useCallback((path: string) => selectItemRaw(paneId, path), [selectItemRaw, paneId])
-  const setActiveItem = useCallback((path: string | null) => setActiveItemRaw(paneId, path), [setActiveItemRaw, paneId])
-  const clearSelection = useCallback(() => clearSelectionRaw(paneId), [clearSelectionRaw, paneId])
-  const moveSelectionUp = useCallback((paths: string[]) => moveSelectionUpRaw(paneId, paths), [moveSelectionUpRaw, paneId])
-  const moveSelectionDown = useCallback((paths: string[]) => moveSelectionDownRaw(paneId, paths), [moveSelectionDownRaw, paneId])
-  const moveSelectionHome = useCallback((paths: string[]) => moveSelectionHomeRaw(paneId, paths), [moveSelectionHomeRaw, paneId])
-  const moveSelectionEnd = useCallback((paths: string[]) => moveSelectionEndRaw(paneId, paths), [moveSelectionEndRaw, paneId])
+  const setEntries = useCallback(
+    (entries: FileEntry[]) => setEntriesRaw(paneId, tabId, entries),
+    [setEntriesRaw, paneId, tabId],
+  )
+  const setLoading = useCallback(
+    (loading: boolean) => setLoadingRaw(paneId, tabId, loading),
+    [setLoadingRaw, paneId, tabId],
+  )
+  const setError = useCallback(
+    (error: string | null) => setErrorRaw(paneId, tabId, error),
+    [setErrorRaw, paneId, tabId],
+  )
+  const setSortMode = useCallback(
+    (mode: SortMode) => setSortModeRaw(paneId, tabId, mode),
+    [setSortModeRaw, paneId, tabId],
+  )
+  const setSortDirection = useCallback(
+    (d: SortDirection) => setSortDirectionRaw(paneId, tabId, d),
+    [setSortDirectionRaw, paneId, tabId],
+  )
+  const setViewMode = useCallback(
+    (mode: ViewMode) => setViewModeRaw(paneId, tabId, mode),
+    [setViewModeRaw, paneId, tabId],
+  )
+  const selectItem = useCallback(
+    (path: string) => selectItemRaw(paneId, tabId, path),
+    [selectItemRaw, paneId, tabId],
+  )
+  const setActiveItem = useCallback(
+    (path: string | null) => setActiveItemRaw(paneId, tabId, path),
+    [setActiveItemRaw, paneId, tabId],
+  )
+  const clearSelection = useCallback(
+    () => clearSelectionRaw(paneId, tabId),
+    [clearSelectionRaw, paneId, tabId],
+  )
+  const moveSelectionUp = useCallback(
+    (paths: string[]) => moveSelectionUpRaw(paneId, tabId, paths),
+    [moveSelectionUpRaw, paneId, tabId],
+  )
+  const moveSelectionDown = useCallback(
+    (paths: string[]) => moveSelectionDownRaw(paneId, tabId, paths),
+    [moveSelectionDownRaw, paneId, tabId],
+  )
+  const moveSelectionHome = useCallback(
+    (paths: string[]) => moveSelectionHomeRaw(paneId, tabId, paths),
+    [moveSelectionHomeRaw, paneId, tabId],
+  )
+  const moveSelectionEnd = useCallback(
+    (paths: string[]) => moveSelectionEndRaw(paneId, tabId, paths),
+    [moveSelectionEndRaw, paneId, tabId],
+  )
 
   return useMemo(
     () => ({
@@ -179,7 +234,12 @@ function usePaneExplorerForId(paneId: string): PaneExplorerResult {
       moveSelectionHome,
       moveSelectionEnd,
     }),
-    [state, setEntries, setLoading, setError, setSortMode, setSortDirection, setViewMode, selectItem, setActiveItem, clearSelection, moveSelectionUp, moveSelectionDown, moveSelectionHome, moveSelectionEnd],
+    [
+      state, setEntries, setLoading, setError,
+      setSortMode, setSortDirection, setViewMode,
+      selectItem, setActiveItem, clearSelection,
+      moveSelectionUp, moveSelectionDown, moveSelectionHome, moveSelectionEnd,
+    ],
   )
 }
 
@@ -203,7 +263,9 @@ interface PaneTreeActions {
 export interface PaneTreeResult extends PaneTreeState, PaneTreeActions {}
 
 function usePaneTreeForId(paneId: string): PaneTreeResult {
-  const state = useTreeStore(useShallow((s) => getTreeState(s, paneId)))
+  const tabId = useActiveTabId(paneId)
+
+  const state = useTreeStore(useShallow((s) => getTreeState(s, paneId, tabId)))
 
   const expandNodeRaw = useTreeStore((s) => s.expandNode)
   const collapseNodeRaw = useTreeStore((s) => s.collapseNode)
@@ -214,14 +276,38 @@ function usePaneTreeForId(paneId: string): PaneTreeResult {
   const removeLoadingRaw = useTreeStore((s) => s.removeLoading)
   const setSelectedPathRaw = useTreeStore((s) => s.setSelectedPath)
 
-  const expandNode = useCallback((path: string) => expandNodeRaw(paneId, path), [expandNodeRaw, paneId])
-  const collapseNode = useCallback((path: string) => collapseNodeRaw(paneId, path), [collapseNodeRaw, paneId])
-  const toggleNode = useCallback((path: string) => toggleNodeRaw(paneId, path), [toggleNodeRaw, paneId])
-  const expandToPath = useCallback((path: string) => expandToPathRaw(paneId, path), [expandToPathRaw, paneId])
-  const setNodeChildren = useCallback((path: string, children: string[]) => setNodeChildrenRaw(paneId, path, children), [setNodeChildrenRaw, paneId])
-  const addLoading = useCallback((path: string) => addLoadingRaw(paneId, path), [addLoadingRaw, paneId])
-  const removeLoading = useCallback((path: string) => removeLoadingRaw(paneId, path), [removeLoadingRaw, paneId])
-  const setSelectedPath = useCallback((path: string | null) => setSelectedPathRaw(paneId, path), [setSelectedPathRaw, paneId])
+  const expandNode = useCallback(
+    (path: string) => expandNodeRaw(paneId, tabId, path),
+    [expandNodeRaw, paneId, tabId],
+  )
+  const collapseNode = useCallback(
+    (path: string) => collapseNodeRaw(paneId, tabId, path),
+    [collapseNodeRaw, paneId, tabId],
+  )
+  const toggleNode = useCallback(
+    (path: string) => toggleNodeRaw(paneId, tabId, path),
+    [toggleNodeRaw, paneId, tabId],
+  )
+  const expandToPath = useCallback(
+    (path: string) => expandToPathRaw(paneId, tabId, path),
+    [expandToPathRaw, paneId, tabId],
+  )
+  const setNodeChildren = useCallback(
+    (path: string, children: string[]) => setNodeChildrenRaw(paneId, tabId, path, children),
+    [setNodeChildrenRaw, paneId, tabId],
+  )
+  const addLoading = useCallback(
+    (path: string) => addLoadingRaw(paneId, tabId, path),
+    [addLoadingRaw, paneId, tabId],
+  )
+  const removeLoading = useCallback(
+    (path: string) => removeLoadingRaw(paneId, tabId, path),
+    [removeLoadingRaw, paneId, tabId],
+  )
+  const setSelectedPath = useCallback(
+    (path: string | null) => setSelectedPathRaw(paneId, tabId, path),
+    [setSelectedPathRaw, paneId, tabId],
+  )
 
   return useMemo(
     () => ({
@@ -235,7 +321,10 @@ function usePaneTreeForId(paneId: string): PaneTreeResult {
       removeLoading,
       setSelectedPath,
     }),
-    [state, expandNode, collapseNode, toggleNode, expandToPath, setNodeChildren, addLoading, removeLoading, setSelectedPath],
+    [
+      state, expandNode, collapseNode, toggleNode, expandToPath,
+      setNodeChildren, addLoading, removeLoading, setSelectedPath,
+    ],
   )
 }
 
@@ -246,4 +335,49 @@ export function usePaneTree(): PaneTreeResult {
 export function useActivePaneTree(): PaneTreeResult {
   const activePaneId = useWorkspaceStore((s) => s.activePaneId)
   return usePaneTreeForId(activePaneId || 'main')
+}
+
+/* ─── File Operations ─── */
+
+export function usePaneFileOperations() {
+  const paneId = usePaneId()
+  const tabId = useActiveTabId(paneId)
+  return useFileOps(paneId, tabId)
+}
+
+export function useActivePaneFileOperations() {
+  const activePaneId = useWorkspaceStore((s) => s.activePaneId)
+  const paneId = activePaneId || 'main'
+  const tabId = useActiveTabId(paneId)
+  return useFileOps(paneId, tabId)
+}
+
+/* ─── File Transfer ─── */
+
+export function usePaneFileTransfer() {
+  const paneId = usePaneId()
+  const tabId = useActiveTabId(paneId)
+  return useFileXfer(paneId, tabId)
+}
+
+export function useActivePaneFileTransfer() {
+  const activePaneId = useWorkspaceStore((s) => s.activePaneId)
+  const paneId = activePaneId || 'main'
+  const tabId = useActiveTabId(paneId)
+  return useFileXfer(paneId, tabId)
+}
+
+/* ─── Clipboard ─── */
+
+export function usePaneClipboard() {
+  const paneId = usePaneId()
+  const tabId = useActiveTabId(paneId)
+  return useClip(paneId, tabId)
+}
+
+export function useActivePaneClipboard() {
+  const activePaneId = useWorkspaceStore((s) => s.activePaneId)
+  const paneId = activePaneId || 'main'
+  const tabId = useActiveTabId(paneId)
+  return useClip(paneId, tabId)
 }

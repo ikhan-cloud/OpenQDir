@@ -1,6 +1,6 @@
 import type { FileEntry, FileSystemService } from '@/types'
 
-function createEntry(name: string, path: string, type: FileEntry['type']): FileEntry {
+export function createEntry(name: string, path: string, type: FileEntry['type']): FileEntry {
   return {
     name,
     path,
@@ -38,7 +38,7 @@ const mockDocuments: FileEntry[] = [
   createEntry('report.pdf', '/home/documents/report.pdf', 'file'),
 ]
 
-const mockData: Record<string, FileEntry[]> = {
+export const mockData: Record<string, FileEntry[]> = {
   '/': mockRoot,
   '/home': mockHome,
   '/home/documents': mockDocuments,

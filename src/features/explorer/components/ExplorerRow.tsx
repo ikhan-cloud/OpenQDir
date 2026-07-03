@@ -1,8 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 import { notificationService } from '@/services'
 import type { FileEntry } from '@/types'
 import { usePaneNav, usePaneExplorer } from '@/features/workspace/hooks'
+import { ContextMenu } from '@/components/ContextMenu'
+import type { ContextMenuDef } from '@/components/ContextMenu'
 import { FileIcon } from './FileIcon'
 import { cn } from '@/lib/utils'
 
@@ -36,9 +38,19 @@ function getFileTypeLabel(entry: FileEntry): string {
   return `${ext} file`
 }
 
+const contextMenuItems: ContextMenuDef[] = [
+  { id: 'clipboard.copy', label: 'Copy', shortcut: 'Ctrl+C' },
+  { id: 'clipboard.cut', label: 'Cut', shortcut: 'Ctrl+X' },
+  { id: 'clipboard.paste', label: 'Paste', shortcut: 'Ctrl+V' },
+  { separator: true },
+  { id: 'file.rename', label: 'Rename', shortcut: 'F2' },
+  { id: 'file.delete', label: 'Delete', shortcut: 'Del' },
+]
+
 export function ExplorerRow({ entry }: ExplorerRowProps) {
   const { activeItem, selectItem } = usePaneExplorer()
   const { navigate } = usePaneNav()
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
   const isActive = activeItem === entry.path
 
   const handleClick = useCallback(() => {
@@ -56,31 +68,51 @@ export function ExplorerRow({ entry }: ExplorerRowProps) {
     }
   }, [entry, navigate])
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      selectItem(entry.path)
+      setMenuPos({ x: e.clientX, y: e.clientY })
+    },
+    [entry.path, selectItem],
+  )
+
   return (
-    <div
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      className={cn(
-        'flex h-8 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm transition-colors',
-        isActive
-          ? 'bg-accent text-accent-foreground'
-          : 'text-foreground hover:bg-accent/50',
+    <>
+      <div
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+        className={cn(
+          'flex h-8 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm transition-colors',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-foreground hover:bg-accent/50',
+        )}
+        role="row"
+        aria-selected={isActive}
+        data-path={entry.path}
+      >
+        <FileIcon type={entry.type} name={entry.name} />
+        <span className="flex-1 truncate">{entry.name}</span>
+        <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
+          {entry.type === 'directory' ? '-' : formatSize(entry.size)}
+        </span>
+        <span className="hidden w-28 shrink-0 text-xs text-muted-foreground md:block">
+          {getFileTypeLabel(entry)}
+        </span>
+        <span className="hidden w-36 shrink-0 text-right text-xs text-muted-foreground lg:block">
+          {formatDate(entry.modifiedAt)}
+        </span>
+      </div>
+      {menuPos && (
+        <ContextMenu
+          x={menuPos.x}
+          y={menuPos.y}
+          items={contextMenuItems}
+          onClose={() => setMenuPos(null)}
+        />
       )}
-      role="row"
-      aria-selected={isActive}
-      data-path={entry.path}
-    >
-      <FileIcon type={entry.type} name={entry.name} />
-      <span className="flex-1 truncate">{entry.name}</span>
-      <span className="hidden w-24 shrink-0 text-right text-xs text-muted-foreground sm:block">
-        {entry.type === 'directory' ? '-' : formatSize(entry.size)}
-      </span>
-      <span className="hidden w-28 shrink-0 text-xs text-muted-foreground md:block">
-        {getFileTypeLabel(entry)}
-      </span>
-      <span className="hidden w-36 shrink-0 text-right text-xs text-muted-foreground lg:block">
-        {formatDate(entry.modifiedAt)}
-      </span>
-    </div>
+    </>
   )
 }

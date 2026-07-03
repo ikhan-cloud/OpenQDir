@@ -9,17 +9,20 @@ export interface PaneTreeState {
 }
 
 export interface TreeStore {
-  panes: Record<string, PaneTreeState>
+  panes: Record<string, Record<string, PaneTreeState>>
   registerPane: (paneId: string) => void
   unregisterPane: (paneId: string) => void
-  expandNode: (paneId: string, path: string) => void
-  collapseNode: (paneId: string, path: string) => void
-  toggleNode: (paneId: string, path: string) => void
-  expandToPath: (paneId: string, path: string) => void
-  setNodeChildren: (paneId: string, path: string, children: string[]) => void
-  addLoading: (paneId: string, path: string) => void
-  removeLoading: (paneId: string, path: string) => void
-  setSelectedPath: (paneId: string, path: string | null) => void
+  registerTab: (paneId: string, tabId: string) => void
+  unregisterTab: (paneId: string, tabId: string) => void
+  expandNode: (paneId: string, tabId: string, path: string) => void
+  collapseNode: (paneId: string, tabId: string, path: string) => void
+  toggleNode: (paneId: string, tabId: string, path: string) => void
+  expandToPath: (paneId: string, tabId: string, path: string) => void
+  setNodeChildren: (paneId: string, tabId: string, path: string, children: string[]) => void
+  addLoading: (paneId: string, tabId: string, path: string) => void
+  removeLoading: (paneId: string, tabId: string, path: string) => void
+  setSelectedPath: (paneId: string, tabId: string, path: string | null) => void
+  refreshNode: (paneId: string, tabId: string, path: string) => void
 }
 
 const defaultPaneTree: PaneTreeState = {
@@ -37,54 +40,84 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     set((state) => {
       if (state.panes[paneId]) return state
       return {
-        panes: { ...state.panes, [paneId]: { ...defaultPaneTree } },
+        panes: { ...state.panes, [paneId]: {} },
       }
     }),
 
   unregisterPane: (paneId) =>
     set((state) => {
       const { [paneId]: _, ...rest } = state.panes
-      return { panes: rest as Record<string, PaneTreeState> }
+      return { panes: rest }
     }),
 
-  expandNode: (paneId, path) =>
+  registerTab: (paneId, tabId) =>
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
-      if (pane.expandedPaths.includes(path)) return state
+      const paneTabs = state.panes[paneId]
+      if (!paneTabs) return state
+      if (paneTabs[tabId]) return state
       return {
         panes: {
           ...state.panes,
-          [paneId]: { ...pane, expandedPaths: [...pane.expandedPaths, path] },
+          [paneId]: { ...paneTabs, [tabId]: { ...defaultPaneTree } },
         },
       }
     }),
 
-  collapseNode: (paneId, path) =>
+  unregisterTab: (paneId, tabId) =>
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
+      const paneTabs = state.panes[paneId]
+      if (!paneTabs) return state
+      const { [tabId]: _, ...rest } = paneTabs
+      return {
+        panes: { ...state.panes, [paneId]: rest },
+      }
+    }),
+
+  expandNode: (paneId, tabId, path) =>
+    set((state) => {
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      if (tab.expandedPaths.includes(path)) return state
       return {
         panes: {
           ...state.panes,
           [paneId]: {
-            ...pane,
-            expandedPaths: pane.expandedPaths.filter((p) => p !== path),
+            ...state.panes[paneId],
+            [tabId]: { ...tab, expandedPaths: [...tab.expandedPaths, path] },
           },
         },
       }
     }),
 
-  toggleNode: (paneId, path) => {
-    const { expandedPaths } = get().panes[paneId] ?? { expandedPaths: [] }
-    if (expandedPaths.includes(path)) {
-      get().collapseNode(paneId, path)
+  collapseNode: (paneId, tabId, path) =>
+    set((state) => {
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: {
+              ...tab,
+              expandedPaths: tab.expandedPaths.filter((p) => p !== path),
+            },
+          },
+        },
+      }
+    }),
+
+  toggleNode: (paneId, tabId, path) => {
+    const tab = get().panes[paneId]?.[tabId]
+    if (!tab) return
+    if (tab.expandedPaths.includes(path)) {
+      get().collapseNode(paneId, tabId, path)
     } else {
-      get().expandNode(paneId, path)
+      get().expandNode(paneId, tabId, path)
     }
   },
 
-  expandToPath: (paneId, path) => {
+  expandToPath: (paneId, tabId, path) => {
     if (!path) return
     const segments = path.split('/').filter(Boolean)
     const ancestors: string[] = []
@@ -93,9 +126,9 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
     }
 
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
-      const newExpanded = [...pane.expandedPaths]
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      const newExpanded = [...tab.expandedPaths]
       for (const ancestor of ancestors) {
         if (!newExpanded.includes(ancestor)) {
           newExpanded.push(ancestor)
@@ -104,66 +137,101 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
       return {
         panes: {
           ...state.panes,
-          [paneId]: { ...pane, expandedPaths: newExpanded, selectedPath: path },
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: { ...tab, expandedPaths: newExpanded, selectedPath: path },
+          },
         },
       }
     })
   },
 
-  setNodeChildren: (paneId, path, children) =>
+  setNodeChildren: (paneId, tabId, path, children) =>
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
       return {
         panes: {
           ...state.panes,
           [paneId]: {
-            ...pane,
-            childrenMap: { ...pane.childrenMap, [path]: children },
-            loadedPaths: pane.loadedPaths.includes(path)
-              ? pane.loadedPaths
-              : [...pane.loadedPaths, path],
+            ...state.panes[paneId],
+            [tabId]: {
+              ...tab,
+              childrenMap: { ...tab.childrenMap, [path]: children },
+              loadedPaths: tab.loadedPaths.includes(path)
+                ? tab.loadedPaths
+                : [...tab.loadedPaths, path],
+            },
           },
         },
       }
     }),
 
-  addLoading: (paneId, path) =>
+  addLoading: (paneId, tabId, path) =>
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
-      if (pane.loadingPaths.includes(path)) return state
-      return {
-        panes: {
-          ...state.panes,
-          [paneId]: { ...pane, loadingPaths: [...pane.loadingPaths, path] },
-        },
-      }
-    }),
-
-  removeLoading: (paneId, path) =>
-    set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      if (tab.loadingPaths.includes(path)) return state
       return {
         panes: {
           ...state.panes,
           [paneId]: {
-            ...pane,
-            loadingPaths: pane.loadingPaths.filter((p) => p !== path),
+            ...state.panes[paneId],
+            [tabId]: { ...tab, loadingPaths: [...tab.loadingPaths, path] },
           },
         },
       }
     }),
 
-  setSelectedPath: (paneId, path) =>
+  removeLoading: (paneId, tabId, path) =>
     set((state) => {
-      const pane = state.panes[paneId]
-      if (!pane) return state
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
       return {
         panes: {
           ...state.panes,
-          [paneId]: { ...pane, selectedPath: path },
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: {
+              ...tab,
+              loadingPaths: tab.loadingPaths.filter((p) => p !== path),
+            },
+          },
+        },
+      }
+    }),
+
+  setSelectedPath: (paneId, tabId, path) =>
+    set((state) => {
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: { ...tab, selectedPath: path },
+          },
+        },
+      }
+    }),
+
+  refreshNode: (paneId, tabId, path) =>
+    set((state) => {
+      const tab = state.panes[paneId]?.[tabId]
+      if (!tab) return state
+      const { [path]: _, ...rest } = tab.childrenMap
+      return {
+        panes: {
+          ...state.panes,
+          [paneId]: {
+            ...state.panes[paneId],
+            [tabId]: {
+              ...tab,
+              childrenMap: rest,
+              loadedPaths: tab.loadedPaths.filter((p) => p !== path),
+            },
+          },
         },
       }
     }),
