@@ -10,7 +10,6 @@ export type LayoutMode = 'single' | 'horizontal' | 'vertical' | 'grid'
 export interface TabState {
   id: string
   name: string
-  currentPath: string
 }
 
 export interface PaneState {
@@ -27,7 +26,6 @@ export interface WorkspaceStore {
   minPaneSize: number
   initPanes: (ids: string[]) => void
   setActivePane: (id: string) => void
-  setPanePath: (id: string, path: string) => void
   setLayout: (layout: LayoutMode) => void
   setPaneSize: (id: string, size: number) => void
   setPaneSizes: (sizes: Record<string, number>) => void
@@ -48,7 +46,6 @@ interface WorkspaceSession {
     tabs: Array<{
       id: string
       name: string
-      currentPath: string
     }>
   }>
 }
@@ -65,7 +62,6 @@ function serializeSession(state: WorkspaceStore): WorkspaceSession {
       tabs: p.tabs.map((t) => ({
         id: t.id,
         name: t.name,
-        currentPath: t.currentPath,
       })),
     })),
   }
@@ -99,7 +95,7 @@ function unregisterFromSubStores(paneId: string, tabId: string) {
 }
 
 function createDefaultTab(): TabState {
-  return { id: DEFAULT_TAB_ID, name: 'Tab 1', currentPath: '' }
+  return { id: DEFAULT_TAB_ID, name: 'Tab 1' }
 }
 
 function createDefaultPane(id: string): PaneState {
@@ -135,7 +131,6 @@ function buildInitialPanes(): PaneState[] {
     tabs: p.tabs.map((t) => ({
       id: t.id,
       name: t.name,
-      currentPath: t.currentPath,
     })),
   }))
 }
@@ -156,22 +151,6 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
   setActivePane: (id) => {
     set({ activePaneId: id })
-    persist(get())
-  },
-
-  setPanePath: (id, path) => {
-    set((state) => ({
-      panes: state.panes.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              tabs: p.tabs.map((t) =>
-                t.id === p.activeTabId ? { ...t, currentPath: path } : t,
-              ),
-            }
-          : p,
-      ),
-    }))
     persist(get())
   },
 
@@ -235,7 +214,6 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     const newTab: TabState = {
       id: newTabId,
       name: `Tab ${pane.tabs.length + 1}`,
-      currentPath: '',
     }
 
     registerInSubStores(paneId, newTabId)

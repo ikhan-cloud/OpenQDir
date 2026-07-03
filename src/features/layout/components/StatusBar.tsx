@@ -8,7 +8,11 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+let _sbRenders = 0
+
 export function StatusBar() {
+  console.debug('[StatusBar] render #', ++_sbRenders)
+
   const { currentPath } = useActivePaneNav()
   const { entries, selectedItems } = useActivePaneExplorer()
   const activePaneId = useWorkspaceStore((s) => s.activePaneId)

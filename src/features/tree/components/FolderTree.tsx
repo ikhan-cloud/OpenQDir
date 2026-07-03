@@ -4,12 +4,19 @@ import { useFileSystem } from '@/services'
 import { useActivePaneNav, useActivePaneTree } from '@/features/workspace/hooks'
 import { FolderNode } from './FolderNode'
 
+let _ftRenders = 0
+let _ftEffectRoot = 0
+let _ftEffectExpand = 0
+
 export function FolderTree() {
+  console.debug('[FolderTree] render #', ++_ftRenders)
+
   const { currentPath } = useActivePaneNav()
   const { loadedPaths, loadingPaths, childrenMap, setNodeChildren, addLoading, removeLoading, expandToPath } = useActivePaneTree()
   const fs = useFileSystem()
 
   useEffect(() => {
+    console.debug('[FolderTree] effect: loadRoot #', ++_ftEffectRoot, 'loadedPaths:', loadedPaths.length)
     async function loadRoot() {
       if (loadedPaths.includes('/')) return
       addLoading('/')
@@ -29,6 +36,7 @@ export function FolderTree() {
   }, [loadedPaths, setNodeChildren, addLoading, removeLoading, fs])
 
   useEffect(() => {
+    console.debug('[FolderTree] effect: expandToPath #', ++_ftEffectExpand, 'currentPath:', currentPath)
     if (currentPath && currentPath !== '/') {
       expandToPath(currentPath)
     }

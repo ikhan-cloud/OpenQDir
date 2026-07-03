@@ -8,7 +8,14 @@ import { ExplorerTable } from './ExplorerTable'
 import { ExplorerEmpty } from './ExplorerEmpty'
 import { FileDetails } from './FileDetails'
 
+let _evRenders = 0
+let _evEffectFilter = 0
+let _evEffectClear = 0
+let _evEffectReadDir = 0
+
 export function ExplorerView() {
+  console.debug('[ExplorerView] render #', ++_evRenders)
+
   const { currentPath } = usePaneNav()
   const { entries, loading, error, activeItem, filterQuery, setEntries, setLoading, setError, clearSelection, setFilterQuery } = usePaneExplorer()
   const fs = useFileSystem()
@@ -19,15 +26,18 @@ export function ExplorerView() {
   const [dragOverCount, setDragOverCount] = useState(0)
 
   useEffect(() => {
+    console.debug('[ExplorerView] effect: filter sync #', ++_evEffectFilter, 'debouncedQuery:', debouncedQuery)
     setFilterQuery(debouncedQuery)
   }, [debouncedQuery, setFilterQuery])
 
   useEffect(() => {
+    console.debug('[ExplorerView] effect: clear filter #', ++_evEffectClear, 'currentPath:', currentPath)
     setLocalQuery('')
     setFilterQuery('')
   }, [currentPath, setFilterQuery])
 
   useEffect(() => {
+    console.debug('[ExplorerView] effect: readDir #', ++_evEffectReadDir, 'currentPath:', currentPath)
     if (!currentPath) {
       setEntries([])
       return

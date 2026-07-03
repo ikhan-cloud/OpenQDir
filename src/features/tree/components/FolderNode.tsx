@@ -12,7 +12,12 @@ interface FolderNodeProps {
   depth: number
 }
 
+let _fnRenders = 0
+let _fnEffectChild = 0
+
 export function FolderNode({ path, name, depth }: FolderNodeProps) {
+  console.debug('[FolderNode] render #', ++_fnRenders, 'path:', path)
+
   const { expandedPaths, loadedPaths, loadingPaths, childrenMap, selectedPath, toggleNode, setNodeChildren, addLoading, removeLoading } = useActivePaneTree()
   const { navigate } = useActivePaneNav()
   const { move } = useActivePaneFileTransfer()
@@ -43,6 +48,7 @@ export function FolderNode({ path, name, depth }: FolderNodeProps) {
   }, [path, isLoaded, addLoading, removeLoading, setNodeChildren, fs])
 
   useEffect(() => {
+    console.debug('[FolderNode] effect: loadChildren #', ++_fnEffectChild, 'path:', path, 'isExpanded:', isExpanded, 'isLoaded:', isLoaded)
     if (isExpanded && !isLoaded) {
       loadChildren()
     }

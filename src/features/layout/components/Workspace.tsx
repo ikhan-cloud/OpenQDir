@@ -7,16 +7,18 @@ interface WorkspaceProps {
   children?: ReactNode
 }
 
+let _wsRenders = 0
+
 export function Workspace({ children }: WorkspaceProps) {
-  const layout = useWorkspaceStore((s) => s.layout)
-  const setLayout = useWorkspaceStore((s) => s.setLayout)
-  const panesInitialized = useWorkspaceStore((s) => s.panes.length > 0)
+  console.debug('[Workspace] render #', ++_wsRenders, 'panesInitialized:', useWorkspaceStore.getState().panes.length > 0)
 
   useEffect(() => {
-    if (!panesInitialized) {
-      setLayout(layout)
+    const state = useWorkspaceStore.getState()
+    console.debug('[Workspace] effect: setLayout', state.layout, 'panesInitialized:', state.panes.length > 0)
+    if (state.panes.length === 0) {
+      state.setLayout(state.layout)
     }
-  }, [setLayout, panesInitialized, layout])
+  }, [])
 
   return <WorkspaceLayout>{children}</WorkspaceLayout>
 }

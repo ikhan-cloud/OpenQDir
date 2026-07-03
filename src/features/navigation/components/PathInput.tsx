@@ -3,7 +3,12 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useFileSystem, notificationService } from '@/services'
 import { usePaneNav } from '@/features/workspace/hooks'
 
+let _piRenders = 0
+let _piEffectDraft = 0
+
 export function PathInput() {
+  console.debug('[PathInput] render #', ++_piRenders)
+
   const { currentPath, navigate } = usePaneNav()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(currentPath)
@@ -12,6 +17,7 @@ export function PathInput() {
   const fs = useFileSystem()
 
   useEffect(() => {
+    console.debug('[PathInput] effect: sync draft #', ++_piEffectDraft, 'editing:', editing, 'currentPath:', currentPath)
     if (!editing) {
       setDraft(currentPath)
     }

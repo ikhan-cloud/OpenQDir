@@ -13,24 +13,15 @@ function renderLayout(layout: string, panes: PaneState[]) {
   return <Renderer panes={panes} />
 }
 
+let _wlRenders = 0
+
 export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
+  console.debug('[WorkspaceLayout] render #', ++_wlRenders, 'panes.length:', useWorkspaceStore.getState().panes.length)
+
   const panes = useWorkspaceStore((s) => s.panes)
   const layout = useWorkspaceStore((s) => s.layout)
-  const activePaneId = useWorkspaceStore((s) => s.activePaneId)
 
   if (panes.length === 0) {
-    return (
-      <main className="flex flex-1 flex-col overflow-auto bg-background">
-        {children}
-      </main>
-    )
-  }
-
-  const activePane = panes.find((p) => p.id === activePaneId)
-  const activeTab = activePane?.tabs.find((t) => t.id === activePane.activeTabId)
-  const hasPath = activeTab && activeTab.currentPath.length > 0
-
-  if (!hasPath) {
     return (
       <main className="flex flex-1 flex-col overflow-auto bg-background">
         {children}
